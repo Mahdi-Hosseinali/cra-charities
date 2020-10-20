@@ -72,9 +72,9 @@ def parse_page(url):
 if __name__ == '__main__':
     urls = [
         'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=ottawa&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
-#        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=gatineau&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
-#        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=orleans&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
-#        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=kanata&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
+        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=gatineau&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
+        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=orleans&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
+        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=kanata&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
     ]
     parsed_urls = set()
     parsed_charities = set()
@@ -95,8 +95,9 @@ if __name__ == '__main__':
         if 'advncdSrch' in url and 'dsrdPg' in qs:
             print('Expanding on: ', url)
             urls.extend(get_links(url))
-        elif 'dsplyRprtngPrd' in url:
+        elif 'dsplyRprtngPrd' in url and qs['selectedCharityBn'][0] not in parsed_charities:
             cnt += 1
+            parsed_charities.add(qs['selectedCharityBn'][0])
             print(cnt, 'Parsing: ', url)
             res = parse_page(url)
             ans.append(res)
@@ -106,7 +107,7 @@ if __name__ == '__main__':
             sys.stdout.flush()
         
         if failed >= 10:
-            print('Too many failures, breaking the code')
+            print('Too many failures, stopping the code')
             break
     
     print(f'{cnt} charities parsed')
