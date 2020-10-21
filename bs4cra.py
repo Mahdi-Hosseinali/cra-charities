@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 failed = 0
 root = 'https://apps.cra-arc.gc.ca'
+ref_pages = 'advncdSrch?q.stts=0007&q.cty=Aylmer&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1'
 
 def get_soup(url):
     global failed
@@ -63,11 +64,19 @@ def parse_page(url):
     if soup:
         ans.update(get_rows(soup, 'identity'))
         if 'Quick View' in soup.h1.text:
+            ans[('identity', 'name')] = soup.h1.text.replace(' — Quick View', '')
             detail_soup = get_soup(root + soup.h1.find_next('a')['href'])
             ans.update(get_rows(detail_soup, 'identity'))
         ans.update(get_finance(soup, 'financials'))
         
     return ans
+
+def save_result(data, adrs):
+    df = pd.DataFrame(data)
+    df.columns = pd.MultiIndex.from_tuples(df.columns)
+    print('writing to file')
+    df.to_csv(adrs, index=False, encoding='utf-8')
+    print('done')
 
 if __name__ == '__main__':
     urls = [
@@ -75,6 +84,8 @@ if __name__ == '__main__':
         'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=gatineau&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
         'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=orleans&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
         'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=kanata&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
+        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=Aylmer&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
+        'https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/advncdSrch?q.stts=0007&q.cty=Nepean&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1',
     ]
     parsed_urls = set()
     parsed_charities = set()
@@ -82,26 +93,32 @@ if __name__ == '__main__':
     cnt = 0
     max_parse = sys.maxsize
     # max_parse = 10
+    skipped = 0
 
     while urls and cnt < max_parse:
         url = urls.pop()
         if url in parsed_urls:
+            skipped += 1
             continue
+        if skipped>0:
+            print(f'Skipped {skipped} repetitive url(s)')
+        skipped = 0
         parsed_urls.add(url)
 
         qs = parse_qs(urlsplit(url).query)
 
         # Move to next pages
-        if 'advncdSrch' in url and 'dsrdPg' in qs:
-            print('Expanding on: ', url)
+        if ('advncdSrch' in url and 
+                parse_qs(urlsplit(ref_pages).query).keys() == qs.keys()):
             urls.extend(get_links(url))
+            print(f'Expanding on: ({len(urls)}) {url}')
         elif 'dsplyRprtngPrd' in url and qs['selectedCharityBn'][0] not in parsed_charities:
             cnt += 1
             parsed_charities.add(qs['selectedCharityBn'][0])
             print(cnt, 'Parsing: ', url)
             res = parse_page(url)
             ans.append(res)
-            # time.sleep(5)
+            time.sleep(1.5)
         
         if cnt%10==0:
             sys.stdout.flush()
@@ -111,8 +128,4 @@ if __name__ == '__main__':
             break
     
     print(f'{cnt} charities parsed')
-    df = pd.DataFrame(ans)
-    df.columns = pd.MultiIndex.from_tuples(df.columns)
-    print('writing to file')
-    df.to_csv('cra_charities_Ottawa.csv', index=False)
-    print('done')
+    save_result(ans, 'cra_charities.csv')
