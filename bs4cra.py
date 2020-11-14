@@ -9,11 +9,12 @@ from urllib.parse import parse_qs, urlsplit
 failed = 0
 root = 'https://apps.cra-arc.gc.ca'
 ref_pages = 'advncdSrch?q.stts=0007&q.cty=Aylmer&q.ordrClmn=NAME&q.ordrRnk=ASC&dsrdPg=1'
+hdr = {'User-Agent': 'Mozilla/5.0'}
 
 def get_soup(url):
     global failed
     try:
-        sauce = requests.get(url)
+        sauce = requests.get(url, headers=hdr)
     except :
         return None
     if sauce.status_code != 200:
