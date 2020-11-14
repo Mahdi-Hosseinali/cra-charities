@@ -12,7 +12,10 @@ ref_pages = 'advncdSrch?q.stts=0007&q.cty=Aylmer&q.ordrClmn=NAME&q.ordrRnk=ASC&d
 
 def get_soup(url):
     global failed
-    sauce = requests.get(url)
+    try:
+        sauce = requests.get(url)
+    except :
+        return None
     if sauce.status_code != 200:
         print(f'Bad response ({sauce.status_code} from {url}')
         failed += 1
@@ -67,6 +70,12 @@ def parse_page(url):
             ans[('identity', 'name')] = soup.h1.text.replace(' — Quick View', '')
             detail_soup = get_soup(root + soup.h1.find_next('a')['href'])
             ans.update(get_rows(detail_soup, 'identity'))
+        elif soup.h1.text == 'Detail page':
+            ans[('identity', 'name')] = strip_extras(soup.findAll('h2', class_='h3')[0].text)
+            ans[('identity', 'Registration no')] = ans[('identity', 'Business/Registration number')]
+            del ans[('identity', 'Business/Registration number')]
+        else:
+            print('Could not find charity name for: ', url)
         ans.update(get_finance(soup, 'financials'))
         
     return ans
@@ -74,6 +83,12 @@ def parse_page(url):
 def save_result(data, adrs):
     df = pd.DataFrame(data)
     df.columns = pd.MultiIndex.from_tuples(df.columns)
+    drops = [
+        'SanctionNote this link will load in another window or tab',
+        'Business/Registration number',
+        "View this charity's quick view information"]
+    for d in drops:
+        df.drop(('identity', d), axis=1, inplace=True, erros='ignore')
     print('writing to file')
     df.to_csv(adrs, index=False, encoding='utf-8')
     print('done')
