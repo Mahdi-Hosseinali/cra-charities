@@ -63,10 +63,10 @@ def get_home_page(row):
 df = new_df
 df[('identity', 'Charity website address')].fillna('', inplace=True)
 df[('identity', 'homepage_text')] = ''
-# df[('identity', 'homepage_text')] = df['identity'].apply(get_home_page, axis=1)
-ans = df.iloc[:50]['identity'].apply(get_home_page, axis=1)
-df.loc[:50, ('identity', 'homepage_text')] = ans
-print(ans)
+df[('identity', 'homepage_text')] = df['identity'].apply(get_home_page, axis=1)
+# ans = df.iloc[:50]['identity'].apply(get_home_page, axis=1)
+# df.loc[:50, ('identity', 'homepage_text')] = ans
+# print(ans)
 
 df.to_csv('cra_charities_url.csv', index=False)
 
